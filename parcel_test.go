@@ -40,15 +40,16 @@ func TestAddGetDelete(t *testing.T) {
 
 	// add
 	// добавьте новую посылку в БД, убедитесь в отсутствии ошибки и наличии идентификатора
-	id, err := store.Add(parcel)
+	number, err := store.Add(parcel)
 	require.NoError(t, err)
-	require.NotEmpty(t, id)
+	require.NotEmpty(t, number)
 
 	// get
 	// получите только что добавленную посылку, убедитесь в отсутствии ошибки
 	// проверьте, что значения всех полей в полученном объекте совпадают со значениями полей в переменной parcel
-	row, err := store.Get(id)
+	row, err := store.Get(number)
 	require.NoError(t, err)
+	require.Equal(t, number, row.Number)
 	require.Equal(t, parcel.Client, row.Client)
 	require.Equal(t, parcel.Status, row.Status)
 	require.Equal(t, parcel.Address, row.Address)
@@ -56,11 +57,11 @@ func TestAddGetDelete(t *testing.T) {
 
 	// delete
 	// удалите добавленную посылку, убедитесь в отсутствии ошибки
-	err = store.Delete(id)
+	err = store.Delete(number)
 	require.NoError(t, err)
 
 	// проверьте, что посылку больше нельзя получить из БД
-	row, err = store.Get(id)
+	row, err = store.Get(number)
 	require.ErrorIs(t, err, sql.ErrNoRows)
 }
 
@@ -77,19 +78,19 @@ func TestSetAddress(t *testing.T) {
 
 	// add
 	// добавьте новую посылку в БД, убедитесь в отсутствии ошибки и наличии идентификатора
-	id, err := store.Add(parcel)
+	number, err := store.Add(parcel)
 	require.NoError(t, err)
-	require.NotEmpty(t, id)
+	require.NotEmpty(t, number)
 
 	// set address
 	// обновите адрес, убедитесь в отсутствии ошибки
 	newAddress := "new test address"
-	err = store.SetAddress(id, newAddress)
+	err = store.SetAddress(number, newAddress)
 	require.NoError(t, err)
 
 	// check
 	// получите добавленную посылку и убедитесь, что адрес обновился
-	row, err := store.Get(id)
+	row, err := store.Get(number)
 	require.NoError(t, err)
 	require.Equal(t, newAddress, row.Address)
 }
@@ -106,19 +107,19 @@ func TestSetStatus(t *testing.T) {
 
 	// add
 	// добавьте новую посылку в БД, убедитесь в отсутствии ошибки и наличии идентификатора
-	id, err := store.Add(parcel)
+	number, err := store.Add(parcel)
 	require.NoError(t, err)
-	require.NotEmpty(t, id)
+	require.NotEmpty(t, number)
 
 	// set status
 	// обновите статус, убедитесь в отсутствии ошибки
 	newAStatus := ParcelStatusDelivered
-	err = store.SetStatus(id, newAStatus)
+	err = store.SetStatus(number, newAStatus)
 	require.NoError(t, err)
 
 	// check
 	// получите добавленную посылку и убедитесь, что статус обновился
-	row, err := store.Get(id)
+	row, err := store.Get(number)
 	require.NoError(t, err)
 	require.Equal(t, newAStatus, row.Status)
 }
@@ -143,31 +144,30 @@ func TestGetByClient(t *testing.T) {
 	// Создаем мапу ключ-число : значение-объект parcel
 	parcelMap := map[int]Parcel{}
 
-	// задаём всем посылкам один и тот же идентификатор клиента
+	// задаём двум из трех посылок одинаковый идентификатор клиента, чтобы в дальнейшем проверить правильность выборки, что не вернулось ничего лишнего
 	client := randRange.Intn(10_000_000)
 	parcels[0].Client = client
 	parcels[1].Client = client
-	parcels[2].Client = client
 
 	// add
 	for i := 0; i < len(parcels); i++ {
-		id, err := store.Add(parcels[i]) // добавьте новую посылку в БД, убедитесь в отсутствии ошибки и наличии идентификатора
+		number, err := store.Add(parcels[i]) // добавьте новую посылку в БД, убедитесь в отсутствии ошибки и наличии идентификатора
 		require.NoError(t, err)
-		require.NotEmpty(t, id)
+		require.NotEmpty(t, number)
 
 		// обновляем идентификатор добавленной у посылки
-		parcels[i].Number = id
+		parcels[i].Number = number
 
 		// сохраняем добавленную посылку в структуру map, чтобы её можно было легко достать по идентификатору посылки
-		parcelMap[id] = parcels[i]
+		parcelMap[number] = parcels[i]
 	}
 
 	// get by client
 	storedParcels, err := store.GetByClient(client) // получите список посылок по идентификатору клиента, сохранённого в переменной client
 	// убедитесь в отсутствии ошибки
 	require.NoError(t, err)
-	// убедитесь, что количество полученных посылок совпадает с количеством добавленных
-	require.Equal(t, len(parcels), len(storedParcels))
+	// убедитесь, что количество полученных посылок совпадает с количеством тех, что присвоены клиенту с идентификатором, сохранённым в переменной client
+	require.Equal(t, 2, len(storedParcels))
 	// check
 
 	for _, parcel := range storedParcels {
