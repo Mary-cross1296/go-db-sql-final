@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -42,18 +43,16 @@ func TestAddGetDelete(t *testing.T) {
 	// добавьте новую посылку в БД, убедитесь в отсутствии ошибки и наличии идентификатора
 	number, err := store.Add(parcel)
 	require.NoError(t, err)
-	require.NotEmpty(t, number)
+	assert.True(t, number > 0)
+
+	parcel.Number = number
 
 	// get
 	// получите только что добавленную посылку, убедитесь в отсутствии ошибки
 	// проверьте, что значения всех полей в полученном объекте совпадают со значениями полей в переменной parcel
 	row, err := store.Get(number)
 	require.NoError(t, err)
-	require.Equal(t, number, row.Number)
-	require.Equal(t, parcel.Client, row.Client)
-	require.Equal(t, parcel.Status, row.Status)
-	require.Equal(t, parcel.Address, row.Address)
-	require.Equal(t, parcel.CreatedAt, row.CreatedAt)
+	assert.Equal(t, parcel, row)
 
 	// delete
 	// удалите добавленную посылку, убедитесь в отсутствии ошибки
@@ -61,8 +60,8 @@ func TestAddGetDelete(t *testing.T) {
 	require.NoError(t, err)
 
 	// проверьте, что посылку больше нельзя получить из БД
-	row, err = store.Get(number)
-	require.ErrorIs(t, err, sql.ErrNoRows)
+	_, err = store.Get(number)
+	assert.ErrorIs(t, err, sql.ErrNoRows)
 }
 
 // TestSetAddress проверяет обновление адреса
@@ -80,7 +79,7 @@ func TestSetAddress(t *testing.T) {
 	// добавьте новую посылку в БД, убедитесь в отсутствии ошибки и наличии идентификатора
 	number, err := store.Add(parcel)
 	require.NoError(t, err)
-	require.NotEmpty(t, number)
+	assert.True(t, number > 0)
 
 	// set address
 	// обновите адрес, убедитесь в отсутствии ошибки
@@ -92,7 +91,7 @@ func TestSetAddress(t *testing.T) {
 	// получите добавленную посылку и убедитесь, что адрес обновился
 	row, err := store.Get(number)
 	require.NoError(t, err)
-	require.Equal(t, newAddress, row.Address)
+	assert.Equal(t, newAddress, row.Address)
 }
 
 // TestSetStatus проверяет обновление статуса
@@ -109,7 +108,7 @@ func TestSetStatus(t *testing.T) {
 	// добавьте новую посылку в БД, убедитесь в отсутствии ошибки и наличии идентификатора
 	number, err := store.Add(parcel)
 	require.NoError(t, err)
-	require.NotEmpty(t, number)
+	assert.True(t, number > 0)
 
 	// set status
 	// обновите статус, убедитесь в отсутствии ошибки
@@ -121,7 +120,7 @@ func TestSetStatus(t *testing.T) {
 	// получите добавленную посылку и убедитесь, что статус обновился
 	row, err := store.Get(number)
 	require.NoError(t, err)
-	require.Equal(t, newAStatus, row.Status)
+	assert.Equal(t, newAStatus, row.Status)
 }
 
 // TestGetByClient проверяет получение посылок по идентификатору клиента
@@ -153,7 +152,7 @@ func TestGetByClient(t *testing.T) {
 	for i := 0; i < len(parcels); i++ {
 		number, err := store.Add(parcels[i]) // добавьте новую посылку в БД, убедитесь в отсутствии ошибки и наличии идентификатора
 		require.NoError(t, err)
-		require.NotEmpty(t, number)
+		assert.True(t, number > 0)
 
 		// обновляем идентификатор добавленной у посылки
 		parcels[i].Number = number
@@ -167,7 +166,7 @@ func TestGetByClient(t *testing.T) {
 	// убедитесь в отсутствии ошибки
 	require.NoError(t, err)
 	// убедитесь, что количество полученных посылок совпадает с количеством тех, что присвоены клиенту с идентификатором, сохранённым в переменной client
-	require.Equal(t, 2, len(storedParcels))
+	assert.Equal(t, 2, len(storedParcels))
 	// check
 
 	for _, parcel := range storedParcels {
@@ -177,9 +176,9 @@ func TestGetByClient(t *testing.T) {
 		// убедитесь, что значения полей полученных посылок заполнены верно
 		parcelMapValue := parcelMap[parcel.Number]
 
-		require.Equal(t, parcelMapValue.Client, parcel.Client)
-		require.Equal(t, parcelMapValue.Status, parcel.Status)
-		require.Equal(t, parcelMapValue.Address, parcel.Address)
-		require.Equal(t, parcelMapValue.CreatedAt, parcel.CreatedAt)
+		assert.Equal(t, parcelMapValue.Client, parcel.Client)
+		assert.Equal(t, parcelMapValue.Status, parcel.Status)
+		assert.Equal(t, parcelMapValue.Address, parcel.Address)
+		assert.Equal(t, parcelMapValue.CreatedAt, parcel.CreatedAt)
 	}
 }

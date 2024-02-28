@@ -24,13 +24,13 @@ func (s ParcelStore) Add(p Parcel) (int, error) {
 		fmt.Printf("Add s.db.Exec error %v \n", err)
 		return 0, err
 	}
-	lastId, err := response.LastInsertId()
+	number, err := response.LastInsertId()
 	if err != nil {
 		fmt.Printf("Add response.LastInsertId error %v \n", err)
 		return 0, err
 	}
 	// верните идентификатор последней добавленной записи
-	return int(lastId), nil
+	return int(number), nil
 }
 
 func (s ParcelStore) Get(number int) (Parcel, error) {
@@ -38,6 +38,7 @@ func (s ParcelStore) Get(number int) (Parcel, error) {
 	// здесь из таблицы должна вернуться только одна строка
 	row := s.db.QueryRow("SELECT number, client, status, address, created_at FROM parcel WHERE number = :number",
 		sql.Named("number", number))
+
 	// заполните объект Parcel данными из таблицы
 	p := Parcel{}
 	err := row.Scan(&p.Number, &p.Client, &p.Status, &p.Address, &p.CreatedAt)
@@ -57,6 +58,8 @@ func (s ParcelStore) GetByClient(client int) ([]Parcel, error) {
 		fmt.Printf("GetByClient s.db.Query error %v \n", err)
 		return nil, err
 	}
+	defer rows.Close()
+
 	// заполните срез Parcel данными из таблицы
 	var res []Parcel
 	for rows.Next() {
